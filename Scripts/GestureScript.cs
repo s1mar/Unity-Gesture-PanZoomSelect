@@ -9,7 +9,7 @@ public class GestureScript : MonoBehaviour {
 	float touchTime;
 	public float SCALE_DURATION = 2.0f;
 	bool rotationWidgetSelected = false;
-
+	bool panThroughLock = false;
 
 	private float scale_factor= 0.07f;
 	private float MAXSCALE = 6.0f, MIN_SCALE = 0.6f; // zoom-in and zoom-out limits
@@ -103,10 +103,12 @@ public class GestureScript : MonoBehaviour {
 			switch (touchFirst.phase) {
 
 			case TouchPhase.Moved:
-				if (selectedGameObject == null || touches[1].phase != TouchPhase.Moved) {
+				if (selectedGameObject == null || touches [1].phase != TouchPhase.Moved) {
 					return;
 				}
-				//zoomObject (touches);
+
+				if (!panThroughLock)
+					return;
 				scaleAddendum();
 
 				return;
@@ -114,7 +116,17 @@ public class GestureScript : MonoBehaviour {
 				
 		}
 		else if(touchCount == 3){
-
+			if (touches [0].phase == TouchPhase.Began && touches [1].phase == TouchPhase.Began && touches [2].phase == TouchPhase.Began) {
+				panThroughLock = true;
+			
+			}
+			else if (touches [0].phase == TouchPhase.Moved && touches [1].phase == TouchPhase.Moved && touches [2].phase == TouchPhase.Moved) {
+				panThroughLock = true;
+				panThrough (touches [0]);
+			} else if(touches [0].phase == TouchPhase.Ended && touches [1].phase == TouchPhase.Ended && touches [2].phase == TouchPhase.Ended){
+			
+				panThroughLock = false;
+			}
 
 		}
 
@@ -164,6 +176,26 @@ public class GestureScript : MonoBehaviour {
 		Vector2 deltaShift = touch.deltaPosition;
 		Vector3 translationVector = new Vector3 (deltaShift.x * PAN_SPEED * Time.deltaTime, deltaShift.y * PAN_SPEED * Time.deltaTime, 0);
 		selectedGameObject.transform.Translate (translationVector,Space.World);
+	}
+
+	void panThrough(Touch touch){
+		Vector2 newPos = touch.position;
+		Vector2 oldPos = newPos - touch.deltaPosition;
+		float diffMagnitude = touch.deltaPosition.magnitude;
+
+
+		if (newPos.magnitude > oldPos.magnitude) {
+			//MOVE CLOSE
+			Vector3 translation = new Vector3(0,0,PAN_SPEED*Time.deltaTime*-diffMagnitude);
+			selectedGameObject.transform.Translate(translation,Space.World);
+
+		} else {
+			//MOVE FAR
+			Vector3 translation = new Vector3(0,0,PAN_SPEED*Time.deltaTime*diffMagnitude);
+			selectedGameObject.transform.Translate(translation,Space.World);
+		}
+
+
 	}
 		
 
