@@ -17,6 +17,18 @@ public class GestureScript : MonoBehaviour {
 	private Vector2 curDist = new Vector2(0,0);
 	private Vector2 midPoint = new Vector2(0,0);
 
+	enum Action{
+
+		ACTION_SELECT,
+		ACTION_DESELECT,
+		ACTION_PAN_ACROSS,
+		ACTION_PAN_THROUGH,
+		ACTION_SCALE,
+		ACTION_ROTATE,
+		ACTION_NONE
+	}
+
+	Action prevAction = Action.ACTION_NONE;
 
 	TouchPhase lastTouchPhase;
 
@@ -53,7 +65,7 @@ public class GestureScript : MonoBehaviour {
 	}
 
 	void rotateAcrossYusingX(Touch touch){
-	
+		prevAction = Action.ACTION_ROTATE;
 		Vector3 deltaShift = touch.deltaPosition;
 		Vector3 translationVector = new Vector3 (0, -deltaShift.x * PAN_SPEED * 3, 0);
 		selectedGameObject.transform.parent.transform.Rotate(translationVector,Space.Self);
@@ -79,7 +91,6 @@ public class GestureScript : MonoBehaviour {
 			case TouchPhase.Began:
 				
 				lastTouchPhase = TouchPhase.Began;
-
 				selectObject (touchFirst);
 				return;
 			case TouchPhase.Moved:
@@ -107,7 +118,7 @@ public class GestureScript : MonoBehaviour {
 					return;
 				}
 
-				if (!panThroughLock)
+				if (panThroughLock)
 					return;
 				scaleAddendum();
 
@@ -140,6 +151,10 @@ public class GestureScript : MonoBehaviour {
 			if (hitObject.collider.tag.Equals ("target")) {
 						//switch object script
 				rotationWidgetSelected = false;
+				if (hitObject.collider.gameObject == selectedGameObject && prevAction == Action.ACTION_SELECT) {
+					prevAction = Action.ACTION_NONE;
+					return; //do nothing
+				}
 				switchSelectGameObject(hitObject.collider.gameObject);	
 			}else if(hitObject.collider.tag.Equals ("rotation")){
 				rotationWidgetSelected = true;
@@ -155,30 +170,33 @@ public class GestureScript : MonoBehaviour {
 		//deselect
 			switchGlow(false,obj);
 			selectedGameObject= null;
+			prevAction = Action.ACTION_DESELECT;
 			return;
 		} 
 		switchGlow (false, selectedGameObject);
 		selectedGameObject = obj;
+		prevAction = Action.ACTION_SELECT;
 		switchGlow (true, selectedGameObject);
 	}
 
 	void deselectGameObject(){
 		switchGlow (false, selectedGameObject);
 		selectedGameObject = null;
-	
+		prevAction = Action.ACTION_DESELECT;
 	}
 
 	void panAcross(Touch touch){
 		if (selectedGameObject == null) {
 			return;
 		}
-			
+		prevAction = Action.ACTION_PAN_ACROSS;	
 		Vector2 deltaShift = touch.deltaPosition;
 		Vector3 translationVector = new Vector3 (deltaShift.x * PAN_SPEED * Time.deltaTime, deltaShift.y * PAN_SPEED * Time.deltaTime, 0);
 		selectedGameObject.transform.Translate (translationVector,Space.World);
 	}
 
 	void panThrough(Touch touch){
+		prevAction = Action.ACTION_PAN_THROUGH;	
 		Vector2 newPos = touch.position;
 		Vector2 oldPos = newPos - touch.deltaPosition;
 		float diffMagnitude = touch.deltaPosition.magnitude;
@@ -223,7 +241,7 @@ public class GestureScript : MonoBehaviour {
 	}
 
 	private void scaleAddendum(){
-
+		prevAction = Action.ACTION_SCALE;
 		midPoint = new Vector2(((Input.GetTouch(0).position.x + Input.GetTouch(1).position.x)/2), ((Input.GetTouch(0).position.y + Input.GetTouch(1).position.y)/2));
 		midPoint = Camera.main.ScreenToWorldPoint(midPoint);
 		curDist = Input.GetTouch(0).position - Input.GetTouch(1).position; //current distance between finger touches
