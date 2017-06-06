@@ -170,6 +170,7 @@ public class GestureScript : MonoBehaviour {
 		//deselect
 			switchGlow(false,obj);
 			selectedGameObject= null;
+			panThroughLock = false;
 			prevAction = Action.ACTION_DESELECT;
 			return;
 		} 
@@ -182,6 +183,7 @@ public class GestureScript : MonoBehaviour {
 	void deselectGameObject(){
 		switchGlow (false, selectedGameObject);
 		selectedGameObject = null;
+		panThroughLock = false;
 		prevAction = Action.ACTION_DESELECT;
 	}
 
